@@ -28,6 +28,8 @@ from pykeen.utils import invert_mapping, resolve_device
 from pykeen.evaluation.rank_based_evaluator import RANK_REALISTIC
 from torch import nn
 
+from mphrqe.classification import evaluate_with_thresholds, find_val_thresholds
+
 from .data.config import anzograph_init_root, binary_query_root, triples_root
 from .data.converter import StrippedSPARQLResultBuilder, convert_all
 from .data.loadTriples import load_data
@@ -547,6 +549,129 @@ def evaluate_cli(
     logger.info(f"Evaluation result: {pprint.pformat(result, indent=2)}")
     if result_callback:
         result_callback(result)
+
+
+@main.command(name="classify")
+# data options
+@option_data_root
+@option_validation_data
+@option_test_data
+@option_num_workers
+# wandb options
+@option_use_wandb
+@option_wandb_name
+@option_wandb_group
+# evaluation options
+@click.option(
+    "-b",
+    "--batch-size",
+    type=int,
+    default=None,
+)
+# logging options
+@option_log_level
+# load options
+@option_model_path
+def evaluate_cli(
+    # data options
+    data_root: pathlib.Path,
+    validation_data: List[str],
+    test_data: List[str],
+    num_workers: int,
+    # wandb
+    use_wandb: bool,
+    wandb_name: str,
+    wandb_group: str,
+    # evaluation
+    batch_size: Optional[int],
+    # logging
+    log_level: str,
+    # saving
+    model_path: Optional[pathlib.Path],
+):
+    """Evaluate a trained model."""
+    # set log level
+    logging.basicConfig(level=log_level)
+
+    # Resolve device
+    device = resolve_device(device=None)
+    logger.info(f"Using device: {device}")
+
+    # Load model
+    if model_path is None:
+        raise ValueError("Model path has to be provided for evaluation.")
+    logger.info(f"Loading model from {model_path.as_uri()}")
+    data = torch.load(model_path, map_location=device)
+    model, config, train_information = [data[k] for k in ("model", "config", "data")]
+    logger.info(
+        f"Loaded model, trained on \n{pprint.pformat(dict(train_information))}\n"
+        f"using configuration \n{pprint.pformat(config)}\n.",
+    )
+    train_batch_size = config["batch_size"]
+    if batch_size is None:
+        logger.info(f"No batch size provided. Using the training batch size: {train_batch_size}")
+        batch_size = train_batch_size
+    elif batch_size > train_batch_size:
+        logger.warning(f"Model was trained with batch size {train_batch_size}, but should be evaluated with a larger one: {batch_size}")
+
+    # Load data
+    logger.info("Loading evaluation data.")
+    data_loaders, information = get_query_data_loaders(
+        data_root=data_root,
+        train=[],
+        validation=map(resolve_sample, validation_data),
+        test=map(resolve_sample, test_data),
+        batch_size=batch_size,
+        num_workers=num_workers,
+    )
+    logger.info(f"Evaluating on: \n{pprint.pformat(dict(information))}\n")
+
+    # instantiate decoder
+    similarity = similarity_resolver.make(query=data["similarity"])
+    logger.info(f"Instantiated similarity {similarity}")
+
+    # instantiate loss
+    loss_instance = query_embedding_loss_resolver.make(query=None)
+    logger.info(f"Instantiated loss {loss_instance}")
+
+    # Initialize tracking
+    result_callback = init_tracker(
+        config=config,
+        use_wandb=use_wandb,
+        wandb_name=wandb_name,
+        wandb_group=wandb_group,
+        information=information,
+        is_hpo=False,
+    )
+
+    result = dict()
+
+    logger.info(f"Finding optimal thresholds for validation data.")
+    val_data_loader = data_loaders["validation"]
+    thresholds, metrics = find_val_thresholds(
+        data_loader=val_data_loader,
+        model=model,
+        similarity=similarity,
+    )
+    result["thresholds"] = thresholds
+    result["metrics_val"] = metrics
+    logging.info(f"Val thresholds: {thresholds}")
+    logging.info(f"Val metrics: {metrics}")
+
+    logger.info(f"Applying optimal thresholds on test data.")
+    val_data_loader = data_loaders["test"]
+    metrics = evaluate_with_thresholds(
+        data_loader=val_data_loader,
+        model=model,
+        similarity=similarity,
+        thresholds=thresholds,
+    )
+    result["metrics_test"] = metrics
+    logging.info(f"Test metrics: {metrics}")
+
+    if result_callback:
+        result_callback(result)
+    logging.info("Evaluation finished!!")
 
 
 METRICS = {
