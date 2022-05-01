@@ -104,6 +104,7 @@ def find_val_thresholds(
     all_distances = torch.empty((0, model.x_e.size(0)))
     all_answers = torch.empty((0, model.x_e.size(0)))
 
+    batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
         # embed query
         x_query = model(batch)
@@ -115,7 +116,7 @@ def find_val_thresholds(
         for batch_id, entity_id in zip(batch_id, entity_id):
             answers[batch_id, entity_id] = 1
         # add to tracking
-        all_query_stuctures.extend(query_structures) # TODO: find query structures
+        all_query_stuctures.extend(batch.structures)
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
         all_answers = torch.cat((all_answers, answers.cpu()), dim=0)
 
@@ -179,7 +180,8 @@ def evaluate_with_thresholds(
     all_query_stuctures = []
     all_distances = torch.empty((0, model.x_e.size(0)))
     all_answers = torch.empty((0, model.x_e.size(0)))
-
+    
+    batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
         # embed query
         x_query = model(batch)
@@ -191,7 +193,7 @@ def evaluate_with_thresholds(
         for batch_id, entity_id in zip(batch_id, entity_id):
             answers[batch_id, entity_id] = 1
         # add to tracking
-        all_query_stuctures.extend(query_structures) # TODO: find query structures
+        all_query_stuctures.extend(batch.structures) # TODO: find query structures
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
         all_answers = torch.cat((all_answers, answers.cpu()), dim=0)
 

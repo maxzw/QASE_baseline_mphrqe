@@ -132,6 +132,7 @@ def get_query_datasets(
             total_available = 0
             datafiles_and_info = []
             glob_pattern = "./" + sample.selector + "/**/*" + split_name + "_stats.json"
+            query_structure = sample.selector.split("/")[1]
             stat_files = list(data_root.glob(glob_pattern))
             assert len(stat_files) > 0, f"The number of files for split {split_name} and pattern {sample.selector} was empty. This is close to always a mistake in the selector."
             for stats_file_path in stat_files:
@@ -186,7 +187,7 @@ def get_query_datasets(
             ))
 
             for datafile_and_info in datafiles_and_info:
-                all_samples.append(__OneFileDataset(datafile_and_info.source_file, datafile_and_info.amount_requested, sample.reify, sample.remove_qualifiers))
+                all_samples.append(__OneFileDataset(datafile_and_info.source_file, datafile_and_info.amount_requested, sample.reify, sample.remove_qualifiers, structure=query_structure))
         if all_samples:
             dataset = torch.utils.data.ConcatDataset(all_samples) if split else __EmptyDataSet()
             datasets[split_name] = dataset
@@ -199,17 +200,19 @@ def read_queries_from_proto(
     input_path: Path,
     reify: bool,
     remove_qualifiers: bool,
+    structure: str
 ) -> Iterable[QueryData]:
     """Yield query data from a protobuf."""
     assert not (reify and remove_qualifiers), "cannot both reify and remove qualifiers"
     if reify:
-        yield from read_queries_from_proto_with_reification(input_path)
+        yield from read_queries_from_proto_with_reification(input_path, structure)
     else:
-        yield from read_queries_from_proto_without_reification(input_path, remove_qualifiers)
+        yield from read_queries_from_proto_without_reification(input_path, remove_qualifiers, structure)
 
 
 def read_queries_from_proto_with_reification(
     input_path: Path,
+    structure: str
 ) -> Iterable[QueryData]:
     """
     Read preprocessed queries from Protobuf file.
@@ -257,6 +260,8 @@ def read_queries_from_proto_with_reification(
         b.set_diameter(query.diameter)
         b.set_targets_ID(query.targets)
 
+        b.set_structure(structure)
+
         # build the object
         yield b.build()
 
@@ -264,6 +269,7 @@ def read_queries_from_proto_with_reification(
 def read_queries_from_proto_without_reification(
     input_path: Path,
     remove_qualifiers: bool,
+    structure: str
 ) -> Iterable[QueryData]:
     """
     Read preprocessed queries from Protobuf file.
@@ -306,6 +312,8 @@ def read_queries_from_proto_without_reification(
         b.set_diameter(query.diameter)
         b.set_targets_ID(query.targets)
 
+        b.set_structure(structure)
+
         # build the object
         yield b.build()
 
@@ -321,10 +329,10 @@ class __EmptyDataSet(Dataset[QueryData]):
 class __OneFileDataset(Dataset[QueryData]):
     """A query dataset from one file (=one query pattern)."""
 
-    def __init__(self, path: Path, amount: int, reify: bool, remove_qualifiers: bool):
+    def __init__(self, path: Path, amount: int, reify: bool, remove_qualifiers: bool, structure: str):
         assert not (reify and remove_qualifiers), "Cannot both remove qualifiers and reify them."
         super().__init__()
-        self.data = list(itertools.islice(read_queries_from_proto(path, reify, remove_qualifiers), amount))
+        self.data = list(itertools.islice(read_queries_from_proto(path, reify, remove_qualifiers, structure), amount))
 
     def __len__(self) -> int:
         return len(self.data)
@@ -387,6 +395,8 @@ class QueryGraphBatch:
     #: shape: (2, num_targets)
     targets: LongTensor
 
+    structures: Sequence[str]
+
     def __post_init__(self):
         assert self.entity_ids is not None
         assert self.relation_ids is not None
@@ -434,6 +444,7 @@ def collate_query_data(
     qualifier_index = []
     query_diameter = []
     targets = []
+    query_structures = []
 
     entity_offset = relation_offset = edge_offset = 0
     for i, query_data in enumerate(batch):
@@ -500,6 +511,8 @@ def collate_query_data(
             query_data.targets,
         ]))
 
+        query_structures.append(query_data.query_structure)
+
     # concatenate
     global_entity_ids_t = torch.cat(global_entity_ids, dim=-1)
     global_relation_ids_t = torch.cat(global_relation_ids, dim=-1)
@@ -526,6 +539,7 @@ def collate_query_data(
         graph_ids=graph_ids,
         query_diameter=query_diameter_t,
         targets=targets_t,
+        structures=query_structures,
     )
 
 

@@ -149,6 +149,8 @@ class QueryData:
     # The longest shortest path between two nodes in this query graph, a scalar tensor.
     query_diameter: LongTensor
 
+    query_structure: str
+
     # A flag to indicate that the inverse relations are already included in the tensors.
     # This is to prevent accidentally calling withInverses twice
     inverses_already_set: bool = False
@@ -332,6 +334,9 @@ class TensorBuilder(BinaryFormBuilder[QueryData]):
         assert diameter <= self.number_of_triples, "the diameter of the query can never be larger than the number of triples"
         self.diameter = diameter
 
+    def set_structure(self, structure: str):
+        self.structure = structure
+
     def build(self) -> QueryData:
         # checkign that everything is filled
         assert (self.edge_index != -1).all()
@@ -339,7 +344,7 @@ class TensorBuilder(BinaryFormBuilder[QueryData]):
         assert (self.qualifiers != -1).all()
         assert self.diameter != -1
         assert self.targets is not None
-        return QueryData(self.edge_index, self.edge_type, self.qualifiers, self.targets, torch.as_tensor(self.diameter))
+        return QueryData(self.edge_index, self.edge_type, self.qualifiers, self.targets, torch.as_tensor(self.diameter), self.structure)
 
     @staticmethod
     def get_file_extension() -> str:
