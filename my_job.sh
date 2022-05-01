@@ -53,3 +53,5 @@ srun hqe train \
     --use-wandb --wandb-name "training-example" \
     --save \
     --model-path "training-example-model.pt"
+
+srun cp -r "${SCRATCH_DIRECTORY}" $HOME/QASE_baseline_mphrqe/scratch_${SLURM_JOBID}
