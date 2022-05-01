@@ -589,7 +589,7 @@ def evaluate_cli(
     # saving
     model_path: Optional[pathlib.Path],
 ):
-    """Evaluate a trained model."""
+    """Perform threshold optimization and evaluation on a trained model for binary query answering."""
     # set log level
     logging.basicConfig(level=log_level)
 
