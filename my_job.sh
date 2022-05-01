@@ -41,17 +41,19 @@ srun hqe train \
     -va "/2hop/1qual-per-triple:atmost3500" \
     -va "/3hop/1qual-per-triple:atmost3500" \
     -va "/3i/1qual-per-triple:atmost3500" \
-    --embedding-dim 192
-    --activation nn.LeakyRelu
-    --learning-rate 0.0008
-    --batch-size 64
-    --num-layers 3
-    --use-bias True
-    --graph-pooling TargetPooling \
-    --dropout 0.5 \
-    --similarity CosineSimilarity \
-    --use-wandb --wandb-name "training-example" \
+    --epochs 2 \
+    # --embedding-dim 192
+    # --activation nn.LeakyRelu
+    # --learning-rate 0.0008
+    # --batch-size 64
+    # --num-layers 3
+    # --use-bias True
+    # --graph-pooling TargetPooling \
+    # --dropout 0.5 \
+    # --similarity CosineSimilarity \
+    # --use-wandb --wandb-name "training-example" \
     --save \
     --model-path "training-example-model.pt"
 
-srun cp -r "${SCRATCH_DIRECTORY}" $HOME/QASE_baseline_mphrqe/scratch_${SLURM_JOBID}
+mkdir -p $HOME/QASE_baseline_mphrqe/run_data/scratch_${SLURM_JOBID} && \ 
+cp -r ${SCRATCH_DIRECTORY} $HOME/QASE_baseline_mphrqe/run_data/scratch_${SLURM_JOBID}
