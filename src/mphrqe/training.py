@@ -62,7 +62,7 @@ def _train_epoch(
         # TODO: Replace model.x_e by features?
         scores = similarity(x=x_query, y=model.x_e)
         # now compute the loss based on labels
-        targets = batch.targets.to(model.device)
+        targets = batch.hard_targets.to(model.device)
         loss_value = loss(scores, targets)
         # backward pass
         loss_value.backward()

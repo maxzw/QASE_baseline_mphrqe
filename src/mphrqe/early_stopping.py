@@ -89,7 +89,7 @@ class EarlyStopper:
         self.best_metric = float("-inf") if larger_is_better else float("+inf")
         self.key = key
         if best_model_path is None:
-            best_model_path = pathlib.Path(f"best-model-{uuid.uuid4()}.pt")
+            best_model_path = pathlib.Path(tempfile.gettempdir(), f"best-model-{uuid.uuid4()}.pt")
         best_model_path = pathlib.Path(best_model_path)
         if best_model_path.is_file():
             raise FileExistsError(best_model_path)

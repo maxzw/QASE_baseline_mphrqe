@@ -1,7 +1,7 @@
 """Classification for MPHRQE."""
 
 import logging
-from typing import Tuple
+from typing import Dict, Tuple
 from bayes_opt import BayesianOptimization
 from matplotlib import pyplot as plt
 import numpy as np
@@ -15,7 +15,8 @@ from mphrqe.similarity import Similarity
 
 def get_class_metrics(
     distances: np.ndarray, 
-    answers: np.ndarray, 
+    easy_answers: np.ndarray, 
+    hard_answers: np.ndarray, 
     threshold: float
 ) -> Tuple[float, float, float, float]:
 
@@ -23,32 +24,36 @@ def get_class_metrics(
     
     selection_mask = (distances < threshold)
 
-    tp = np.sum(np.where(selection_mask, answers, False), axis=1)
-    fp = np.sum(np.where(selection_mask, ~answers, False), axis=1)
-    tn = np.sum(np.where(~selection_mask, ~answers, False), axis=1)
-    fn = np.sum(np.where(~selection_mask, answers, False), axis=1)
+    tp = np.sum(np.where(selection_mask & ~easy_answers, hard_answers, False), axis=1)
+    fp = np.sum(np.where(selection_mask & ~easy_answers, ~hard_answers, False), axis=1)
+    tn = np.sum(np.where(~selection_mask & ~easy_answers, ~hard_answers, False), axis=1)
+    fn = np.sum(np.where(~selection_mask & ~easy_answers, hard_answers, False), axis=1)
 
     accuracy = (tp + tn) / (tp + tn + fp + fn + epsilon)
     precision = tp / (tp + fp + epsilon)
     recall = tp / (tp + fn + epsilon)
     f1 = (2 * precision * recall) / (precision + recall + epsilon)
 
+    weights = 1 / hard_answers.sum(axis=1)
+
     # Return the average of the metrics for the whole batch
-    avg_acc = np.mean(accuracy).item()
-    avg_prec = np.mean(precision).item()
-    avg_rec = np.mean(recall).item()
-    avg_f1 = np.mean(f1).item()
+    avg_acc = np.average(accuracy, weights=weights).item()
+    avg_prec = np.average(precision, weights=weights).item()
+    avg_rec = np.average(recall, weights=weights).item()
+    avg_f1 = np.average(f1, weights=weights).item()
+
     return avg_acc, avg_prec, avg_rec, avg_f1
 
 
 def find_best_threshold(
     distances: np.ndarray, 
-    answers: np.ndarray, 
+    easy_answers: np.ndarray, 
+    hard_answers: np.ndarray,
     struct_str: str = None, 
     num_steps: int = 50
 ) -> Tuple[float, float, float, float, float]:
 
-    pos_dists = np.where(answers, distances, 0)
+    pos_dists = np.where(hard_answers, distances, 0)
     pos_dists[pos_dists==0] = np.nan
     pos_dists_mean = np.nanmean(pos_dists)
     pos_dists_3std = np.nanstd(pos_dists) * 3
@@ -56,7 +61,7 @@ def find_best_threshold(
     pbounds = {'threshold': (pos_dists_mean - pos_dists_3std, pos_dists_mean + pos_dists_3std)}
 
     def objective(threshold):
-        accuracy, precision, recall, f1 = get_class_metrics(distances, answers, threshold)
+        accuracy, precision, recall, f1 = get_class_metrics(distances, easy_answers, hard_answers, threshold)
         return f1
     
     optimizer = BayesianOptimization(
@@ -79,7 +84,7 @@ def find_best_threshold(
         plt.plot(x, y, 'x-', label=struct_str)
 
     best_threshold = optimizer.max['params']['threshold']
-    best_accuracy, best_precision, best_recall, best_f1 = get_class_metrics(distances, answers, best_threshold)
+    best_accuracy, best_precision, best_recall, best_f1 = get_class_metrics(distances, easy_answers, hard_answers, best_threshold)
 
     return best_threshold, best_accuracy, best_precision, best_recall, best_f1
 
@@ -102,7 +107,8 @@ def find_val_thresholds(
     # track queries, distances and answers
     all_query_stuctures = []
     all_distances = torch.empty((0, model.x_e.size(0)))
-    all_answers = torch.empty((0, model.x_e.size(0)))
+    all_easy_answers = torch.empty((0, model.x_e.size(0)))
+    all_hard_answers = torch.empty((0, model.x_e.size(0)))
 
     batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
@@ -110,15 +116,21 @@ def find_val_thresholds(
         x_query = model(batch)
         # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
         scores = similarity(x=x_query, y=model.x_e)
-        # get answers
-        answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
-        batch_id, entity_id = batch.targets
+        # get easy answers
+        easy_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        batch_id, entity_id = batch.easy_targets
         for batch_id, entity_id in zip(batch_id, entity_id):
-            answers[batch_id, entity_id] = 1
+            easy_answers[batch_id, entity_id] = 1
+        # get hard answers
+        hard_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        batch_id, entity_id = batch.hard_targets
+        for batch_id, entity_id in zip(batch_id, entity_id):
+            hard_answers[batch_id, entity_id] = 1
         # add to tracking
         all_query_stuctures.extend(batch.structures)
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
-        all_answers = torch.cat((all_answers, answers.cpu()), dim=0)
+        all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
+        all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
 
         if step % 10 == 0:
             logging.info('Gathering predictions of batches... (%d/%d) ' % (step, total_steps))
@@ -134,17 +146,20 @@ def find_val_thresholds(
         # select data for current structure
         struct_idx = torch.tensor(np.where(np.array(all_query_stuctures) == struct)[0])
         str_distances = all_distances[struct_idx, :]
-        str_answers = all_answers[struct_idx, :]
+        str_easy_answers = all_easy_answers[struct_idx, :]
+        str_hard_answers = all_hard_answers[struct_idx, :]
 
         # find best threshold and metrics
-        accuracy, precision, recall, f1 = find_best_threshold(
+        best_threshold, accuracy, precision, recall, f1 = find_best_threshold(
             str_distances.numpy(), 
-            str_answers.bool().numpy(), 
+            str_easy_answers.bool().numpy(), 
+            str_hard_answers.bool().numpy(),
             thresholds[struct],
             num_steps=50
         )
 
         # save threshold and metrics
+        thresholds[struct] = best_threshold
         metrics[struct] = {
             'accuracy': accuracy,
             'precision': precision,
@@ -158,7 +173,7 @@ def find_val_thresholds(
     plt.legend()
     plt.savefig("threshold_search.png", facecolor='w')
 
-    return metrics
+    return thresholds, metrics
 
 
 @torch.no_grad()
@@ -166,11 +181,11 @@ def evaluate_with_thresholds(
     data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
     model: QueryEmbeddingModel,
     similarity: Similarity,
+    thresholds: Dict[str, float],
 ):
     model.eval()
     
-    # tracking thresholds and scores
-    thresholds = {}
+    # tracking scores
     metrics = {}
 
     step = 0
@@ -179,7 +194,8 @@ def evaluate_with_thresholds(
     # track queries, distances and answers
     all_query_stuctures = []
     all_distances = torch.empty((0, model.x_e.size(0)))
-    all_answers = torch.empty((0, model.x_e.size(0)))
+    all_easy_answers = torch.empty((0, model.x_e.size(0)))
+    all_hard_answers = torch.empty((0, model.x_e.size(0)))
     
     batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
@@ -187,15 +203,21 @@ def evaluate_with_thresholds(
         x_query = model(batch)
         # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
         scores = similarity(x=x_query, y=model.x_e)
-        # get answers
-        answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
-        batch_id, entity_id = batch.targets
+        # get easy answers
+        easy_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        batch_id, entity_id = batch.easy_targets
         for batch_id, entity_id in zip(batch_id, entity_id):
-            answers[batch_id, entity_id] = 1
+            easy_answers[batch_id, entity_id] = 1
+        # get hard answers
+        hard_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        batch_id, entity_id = batch.hard_targets
+        for batch_id, entity_id in zip(batch_id, entity_id):
+            hard_answers[batch_id, entity_id] = 1
         # add to tracking
         all_query_stuctures.extend(batch.structures) # TODO: find query structures
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
-        all_answers = torch.cat((all_answers, answers.cpu()), dim=0)
+        all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
+        all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
 
         if step % 10 == 0:
             logging.info('Gathering predictions of batches... (%d/%d) ' % (step, total_steps))
@@ -208,12 +230,14 @@ def evaluate_with_thresholds(
         # select data for current structure
         struct_idx = torch.tensor(np.where(np.array(all_query_stuctures) == struct)[0])
         str_distances = all_distances[struct_idx, :]
-        str_answers = all_answers[struct_idx, :]
+        str_easy_answers = all_easy_answers[struct_idx, :]
+        str_hard_answers = all_hard_answers[struct_idx, :]
 
         # find best threshold and metrics
         accuracy, precision, recall, f1 = get_class_metrics(
             str_distances.numpy(), 
-            str_answers.bool().numpy(), 
+            str_easy_answers.bool().numpy(), 
+            str_hard_answers.bool().numpy(),
             thresholds[struct]
         )
 
