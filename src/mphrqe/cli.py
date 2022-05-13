@@ -381,6 +381,7 @@ def train_cli(
         repeat_layers_until_diameter=repeat_layers_until_diameter,
         stop_at_diameter=stop_at_diameter,
         graph_pooling=graph_pooling,
+        entmap=entmap,
     )
     logger.info(f"Initialized model:\n{model}.")
 

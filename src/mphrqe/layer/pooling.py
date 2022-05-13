@@ -7,7 +7,7 @@ from class_resolver import Resolver
 from torch import nn
 from torch_scatter import scatter_add
 
-from gqs.mapping import get_entity_mapper
+from gqs.mapping import get_entity_mapper, EntityMapper
 from ..typing import FloatTensor
 
 __all__ = [
@@ -56,6 +56,10 @@ class SumGraphPooling(GraphPooling):
 
 class TargetPooling(GraphPooling):
     """Aggregation by sum."""
+    entmap: EntityMapper
+
+    def set_entmap(self, entmap: EntityMapper):
+        self.entmap = entmap
 
     def forward(
         self,
@@ -67,7 +71,7 @@ class TargetPooling(GraphPooling):
         graph_ids: binary mask
         """
         assert entity_ids is not None
-        mask = entity_ids == get_entity_mapper().highest_entity_index + 1
+        mask = entity_ids == self.entmap.number_of_entities_and_reified_relations_without_vars_and_targets() + 1
         assert mask.sum() == graph_ids.unique().shape[0], "There should be exactly one target node per graph."
         return x_e[mask]
 

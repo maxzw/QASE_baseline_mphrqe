@@ -9,10 +9,11 @@ from class_resolver import HintOrType
 from torch import nn
 
 from gqs.loader import QueryGraphBatch
+from gqs.mapping import EntityMapper
 from .layer import StarEConvLayer
 from .layer.aggregation import QualifierAggregation
 from .layer.composition import Composition
-from .layer.pooling import GraphPooling, graph_pooling_resolver
+from .layer.pooling import GraphPooling, TargetPooling, graph_pooling_resolver
 from .layer.util import get_parameter
 from .layer.weighting import MessageWeighting
 from .typing import FloatTensor, LongTensor
@@ -69,6 +70,7 @@ class StarEQueryEmbeddingModel(QueryEmbeddingModel):
         graph_pooling: HintOrType[GraphPooling] = None,
         repeat_layers_until_diameter: bool = False,
         stop_at_diameter: bool = False,
+        entmap: Optional[EntityMapper] = None,
     ):
         """Initialize the model."""
         super().__init__()
@@ -105,6 +107,8 @@ class StarEQueryEmbeddingModel(QueryEmbeddingModel):
 
         # create graph pooling
         self.pooling = graph_pooling_resolver.make(graph_pooling)
+        if isinstance(self.pooling, TargetPooling):
+            self.pooling.set_entmap(entmap)
 
     @property
     def device(self) -> torch.device:
