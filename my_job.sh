@@ -34,13 +34,13 @@ srun python executables/main.py train \
     -tr "/3i/0qual:*" \
     -tr "/1hop-2i/0qual:*" \
     -tr "/2i-1hop/0qual:*" \
-    -va "/1hop/0qual:atmost1000" \
-    -va "/2hop/0qual:atmost1000" \
-    -va "/3hop/0qual:atmost1000" \
-    -va "/2i/0qual:atmost1000" \
-    -va "/3i/0qual:atmost1000" \
-    -va "/1hop-2i/0qual:atmost1000" \
-    -va "/2i-1hop/0qual:atmost1000" \
+    -va "/1hop/0qual:*" \
+    -va "/2hop/0qual:*" \
+    # -va "/3hop/0qual:*" \
+    -va "/2i/0qual:*" \
+    # -va "/3i/0qual:*" \
+    # -va "/1hop-2i/0qual:*" \
+    # -va "/2i-1hop/0qual:*" \
     --epochs 10000 \
     --embedding-dim 400
     --activation leakyrelu
