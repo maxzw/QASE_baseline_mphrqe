@@ -17,10 +17,10 @@ from mphrqe.classification import evaluate_with_thresholds, find_val_thresholds
 
 from gqs.sample import resolve_sample
 from gqs.dataset import Dataset
-from gqs.loader import get_query_data_loaders
+from gqs.loader import get_query_data_loaders, QuerySamplerDataSet
 from gqs.mapping import (
     get_entity_mapper,
-    get_relation_mapper,
+    get_relation_mapper
 )
 
 from .layer.aggregation import (
@@ -55,7 +55,7 @@ option_train_data = click.option(
     "--train-data",
     type=str,
     multiple=True,
-    default=["/2hop/1qual:1000"],
+    default=["/2hop/0qual:1000"],
 )
 option_validation_data = click.option(
     "-va",
@@ -471,8 +471,9 @@ def evaluate_cli(
     logger.info(f"Loading model from {model_path.as_uri()}")
     data = torch.load(model_path, map_location=device)
     model, config, train_information = [data[k] for k in ("model", "config", "data")]
+    print(train_information)
     logger.info(
-        f"Loaded model, trained on \n{pprint.pformat(dict(train_information))}\n"
+        # f"Loaded model, trained on \n{pprint.pformat(dict(train_information))}\n"
         f"using configuration \n{pprint.pformat(config)}\n.",
     )
     train_batch_size = config["batch_size"]
@@ -485,14 +486,14 @@ def evaluate_cli(
     # Load data
     logger.info("Loading evaluation data.")
     data_loaders, information = get_query_data_loaders(
-        dataset=data_root,
+        dataset=QuerySamplerDataSet(data_root),
         train=[],
         validation=map(resolve_sample, validation_data),
         test=map(resolve_sample, test_data),
         batch_size=batch_size,
         num_workers=num_workers,
     )
-    logger.info(f"Evaluating on: \n{pprint.pformat(dict(information))}\n")
+    # logger.info(f"Evaluating on: \n{pprint.pformat(dict(information))}\n")
 
     # instantiate decoder
     similarity = similarity_resolver.make(query=data["similarity"])
@@ -520,6 +521,7 @@ def evaluate_cli(
         data_loader=val_data_loader,
         model=model,
         similarity=similarity,
+        dataset=str(data_root).upper()
     )
     result["thresholds"] = thresholds
     result["metrics_val"] = metrics

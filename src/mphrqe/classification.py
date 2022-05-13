@@ -62,8 +62,7 @@ def find_best_threshold(
     precisions = []
     recalls = []
 
-    pos_dists = np.where(easy_answers, distances, 0) # find thresholds based on valid easy answers
-    pos_dists[pos_dists==0] = np.nan
+    pos_dists = np.where((easy_answers | hard_answers), distances, np.nan) # find thresholds based on valid easy answers
     pos_dists_mean = np.nanmean(pos_dists)
     pos_dists_std3 = np.nanstd(pos_dists)
     
@@ -106,7 +105,7 @@ def find_best_threshold(
         plt.xlabel("Distance threshold")
         plt.ylabel("Score")
         plt.title(f"{model_name}_{dataset_name}_{struct_str}")
-        plt.savefig(f"{save_path}/{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
+        plt.savefig(f"./{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
         plt.clf()
 
         # save figure to collective f1 plot (1) if needed
@@ -148,22 +147,26 @@ def find_val_thresholds(
 
     batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
+        
         # embed query
         x_query = model(batch)
+        
         # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
         scores = similarity(x=x_query, y=model.x_e)
+        
         # get easy answers
-        easy_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        easy_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
         batch_id, entity_id = batch.easy_targets
         for batch_id, entity_id in zip(batch_id, entity_id):
             easy_answers[batch_id, entity_id] = 1
+        
         # get hard answers
-        hard_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        hard_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
         batch_id, entity_id = batch.hard_targets
-        for batch_id, entity_id in zip(batch_id, entity_id):
-            hard_answers[batch_id, entity_id] = 1
+        hard_answers[batch_id, entity_id] = 1
+        
         # add to tracking
-        all_query_stuctures.extend(batch.structures)
+        all_query_stuctures.extend(batch.query_structures)
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
         all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
         all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
@@ -196,8 +199,8 @@ def find_val_thresholds(
             str_distances.numpy(), 
             str_easy_answers.bool().numpy(), 
             str_hard_answers.bool().numpy(),
-            thresholds[struct],
             num_steps=50,
+            struct_str=struct,
             dataset_name=dataset,
         )
 
@@ -247,22 +250,26 @@ def evaluate_with_thresholds(
     
     batch: QueryGraphBatch
     for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
+        
         # embed query
         x_query = model(batch)
+        
         # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
         scores = similarity(x=x_query, y=model.x_e)
+        
         # get easy answers
-        easy_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        easy_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
         batch_id, entity_id = batch.easy_targets
         for batch_id, entity_id in zip(batch_id, entity_id):
             easy_answers[batch_id, entity_id] = 1
+        
         # get hard answers
-        hard_answers = torch.zeros((torch.max(batch_id) + 1, model.x_e.size(0))) # initialize with zeros, size: (batch_size, num_ents)
+        hard_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
         batch_id, entity_id = batch.hard_targets
-        for batch_id, entity_id in zip(batch_id, entity_id):
-            hard_answers[batch_id, entity_id] = 1
+        hard_answers[batch_id, entity_id] = 1
+        
         # add to tracking
-        all_query_stuctures.extend(batch.structures) # TODO: find query structures
+        all_query_stuctures.extend(batch.query_structures)
         all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
         all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
         all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
@@ -283,7 +290,7 @@ def evaluate_with_thresholds(
         str_hard_answers = all_hard_answers[struct_idx, :]
 
         # track size of current structure for weighted metrics
-        struct_sizes[eval(struct)] = len(struct_idx)
+        struct_sizes[struct] = len(struct_idx)
 
         # find best threshold and metrics
         accuracy, precision, recall, f1 = get_class_metrics(
@@ -302,28 +309,28 @@ def evaluate_with_thresholds(
         }
 
     metrics['macro'] = {
-        'accuracy': np.mean([metrics[eval(struct)]['accuracy'] for struct in metrics]),
-        'precision': np.mean([metrics[eval(struct)]['precision'] for struct in metrics]),
-        'recall': np.mean([metrics[eval(struct)]['recall'] for struct in metrics]),
-        'f1': np.mean([metrics[eval(struct)]['f1'] for struct in metrics])
+        'accuracy': np.mean([metrics[struct]['accuracy'] for struct in metrics]),
+        'precision': np.mean([metrics[struct]['precision'] for struct in metrics]),
+        'recall': np.mean([metrics[struct]['recall'] for struct in metrics]),
+        'f1': np.mean([metrics[struct]['f1'] for struct in metrics])
     }
 
     metrics['weighted'] = {
         'accuracy': np.average(
-            [metrics[eval(struct)]['accuracy'] for struct in metrics if struct != 'macro'],
-            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+            [metrics[struct]['accuracy'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[struct] for struct in metrics if struct != 'macro']
         ),
         'precision': np.average(
-            [metrics[eval(struct)]['precision'] for struct in metrics if struct != 'macro'],
-            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+            [metrics[struct]['precision'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[struct] for struct in metrics if struct != 'macro']
         ),
         'recall': np.average(
-            [metrics[eval(struct)]['recall'] for struct in metrics if struct != 'macro'],
-            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+            [metrics[struct]['recall'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[struct] for struct in metrics if struct != 'macro']
         ),
         'f1': np.average(
-            [metrics[eval(struct)]['f1'] for struct in metrics if struct != 'macro'],
-            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+            [metrics[struct]['f1'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[struct] for struct in metrics if struct != 'macro']
         )
     }
 
