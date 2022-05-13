@@ -26,11 +26,11 @@ source activate thesis
 pip install .
 
 # prepare data
-srun hqe preprocess download-wd50k
-srun hqe preprocess skip-and-download-binary
+srun hrqe preprocess download-wd50k
+srun hrqe preprocess skip-and-download-binary
 
 # Run your code
-srun hqe train \
+srun hrqe train \
     -tr "/1hop/1qual-per-triple:*" \
     -tr "/2i/1qual-per-triple:atmost40000" \
     -tr "/2hop/1qual-per-triple:40000" \

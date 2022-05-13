@@ -7,7 +7,7 @@ from class_resolver import Resolver
 from torch import nn
 from torch_scatter import scatter_add
 
-from ..data.mapping import get_entity_mapper
+from gqs.mapping import get_entity_mapper
 from ..typing import FloatTensor
 
 __all__ = [

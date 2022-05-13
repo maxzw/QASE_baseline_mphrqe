@@ -13,8 +13,8 @@ import torch.utils.data
 from pykeen.evaluation.rank_based_evaluator import RANK_OPTIMISTIC, RANK_PESSIMISTIC, RANK_REALISTIC, RANK_TYPES
 from tqdm.auto import tqdm
 
-from .data import QueryGraphBatch
-from .data.mapping import get_entity_mapper
+from gqs.loader import QueryGraphBatch
+from gqs.mapping import get_entity_mapper
 from .loss import QueryEmbeddingLoss
 from .models import QueryEmbeddingModel
 from .similarity import Similarity
@@ -355,8 +355,8 @@ def evaluate(
         # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
         scores = similarity(x=x_query, y=model.x_e)
         # now compute the loss based on labels
-        validation_loss += loss(scores, batch.targets) * scores.shape[0]
-        evaluator.process_scores_(scores=scores, targets=batch.targets.to(model.device))
+        validation_loss += loss(scores, batch.hard_targets) * scores.shape[0]
+        evaluator.process_scores_(scores=scores, targets=batch.hard_targets.to(model.device))
     return dict(
         loss=validation_loss.item() / len(data_loader),
         **evaluator.finalize(),

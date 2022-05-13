@@ -1,6 +1,8 @@
 """Classification for MPHRQE."""
 
 import logging
+from pathlib import Path
+from pickle import HIGHEST_PROTOCOL
 from typing import Dict, Tuple
 from bayes_opt import BayesianOptimization
 from matplotlib import pyplot as plt
@@ -8,7 +10,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from mphrqe.data.loader import QueryGraphBatch
+from gqs.loader import QueryGraphBatch
 from mphrqe.models import QueryEmbeddingModel
 from mphrqe.similarity import Similarity
 
@@ -47,21 +49,31 @@ def get_class_metrics(
 
 def find_best_threshold(
     distances: np.ndarray, 
-    easy_answers: np.ndarray, 
-    hard_answers: np.ndarray,
+    easy_answers: np.ndarray,
+    hard_answers: np.ndarray, 
     struct_str: str = None, 
-    num_steps: int = 50
-) -> Tuple[float, float, float, float, float]:
+    num_steps: int = 50,
+    model_name: str = "StarQE",
+    dataset_name: str = None,
+    save_path = ""
+    ) -> Tuple[float, float, float, float, float]:
 
-    pos_dists = np.where(hard_answers, distances, 0)
+    # track precision and recall
+    precisions = []
+    recalls = []
+
+    pos_dists = np.where(easy_answers, distances, 0) # find thresholds based on valid easy answers
     pos_dists[pos_dists==0] = np.nan
     pos_dists_mean = np.nanmean(pos_dists)
-    pos_dists_3std = np.nanstd(pos_dists) * 3
-
-    pbounds = {'threshold': (pos_dists_mean - pos_dists_3std, pos_dists_mean + pos_dists_3std)}
+    pos_dists_std3 = np.nanstd(pos_dists)
+    
+    pbounds = {'threshold': (pos_dists_mean - pos_dists_std3*5, pos_dists_mean + pos_dists_std3*5)}
+    logging.info("Using the following bounds: {}".format(pbounds))
 
     def objective(threshold):
         accuracy, precision, recall, f1 = get_class_metrics(distances, easy_answers, hard_answers, threshold)
+        precisions.append(precision)
+        recalls.append(recall)
         return f1
     
     optimizer = BayesianOptimization(
@@ -71,16 +83,39 @@ def find_best_threshold(
     )
 
     optimizer.maximize(
+        init_points=20,
         n_iter=num_steps,
+
     )
 
-    # save figure if needed
-    if struct_str is not None:
+    if (dataset_name is not None) and (struct_str is not None):
+        # create a new figure with a random hash
         x = np.array([step['params']['threshold'] for step in optimizer.res])
         y = np.array([step['target'] for step in optimizer.res])
         x_order = np.argsort(x)
         x = x[x_order]
         y = y[x_order]
+        r = np.array(recalls)[x_order]
+        p = np.array(precisions)[x_order]
+        plt_int = int(hash(struct_str) % 256)
+        plt.figure(plt_int)
+        plt.plot(x, y, '-', label="f1")
+        plt.plot(x, r, '-', label="recall")
+        plt.plot(x, p, '-', label="precision")
+        plt.legend()
+        plt.xlabel("Distance threshold")
+        plt.ylabel("Score")
+        plt.title(f"{model_name}_{dataset_name}_{struct_str}")
+        plt.savefig(f"{save_path}/{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
+        plt.clf()
+
+        # save figure to collective f1 plot (1) if needed
+        x = np.array([step['params']['threshold'] for step in optimizer.res])
+        y = np.array([step['target'] for step in optimizer.res])
+        x_order = np.argsort(x)
+        x = x[x_order]
+        y = y[x_order]
+        plt.figure(1)
         plt.plot(x, y, 'x-', label=struct_str)
 
     best_threshold = optimizer.max['params']['threshold']
@@ -94,6 +129,7 @@ def find_val_thresholds(
     data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
     model: QueryEmbeddingModel,
     similarity: Similarity,
+    dataset: str
 ):
     model.eval()
     
@@ -137,7 +173,13 @@ def find_val_thresholds(
             step += 1
 
     # Define plot
-    plt.figure(figsize=(10,10))
+    plt.figure(1, figsize=(10,10))
+
+    Path("./opt").mkdir(parents=True, exist_ok=True)
+    torch.save(all_distances, f"./opt/distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_easy_answers, f"./opt/easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_hard_answers, f"./opt/hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_query_stuctures, f"./opt/query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
         
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
@@ -155,8 +197,11 @@ def find_val_thresholds(
             str_easy_answers.bool().numpy(), 
             str_hard_answers.bool().numpy(),
             thresholds[struct],
-            num_steps=50
+            num_steps=50,
+            dataset_name=dataset,
         )
+
+        logging.info(f"Threshold: {best_threshold:.4f}, Accuracy: {accuracy:.3f}, Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {f1:.3f}")
 
         # save threshold and metrics
         thresholds[struct] = best_threshold
@@ -168,10 +213,13 @@ def find_val_thresholds(
         }
 
     # Save figure
+    plt.figure(1)
+    plt.title("Optimization results")
     plt.xlabel('Distance threshold')
     plt.ylabel('f1-score')
     plt.legend()
-    plt.savefig("threshold_search.png", facecolor='w')
+    plt.savefig("./threshold_search.png", facecolor='w', bbox_inches='tight')
+    plt.clf()
 
     return thresholds, metrics
 
@@ -223,6 +271,7 @@ def evaluate_with_thresholds(
             logging.info('Gathering predictions of batches... (%d/%d) ' % (step, total_steps))
             step += 1
         
+    struct_sizes = {}
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
         logging.info(f"Calculating metrics for structure: {struct}")
@@ -232,6 +281,9 @@ def evaluate_with_thresholds(
         str_distances = all_distances[struct_idx, :]
         str_easy_answers = all_easy_answers[struct_idx, :]
         str_hard_answers = all_hard_answers[struct_idx, :]
+
+        # track size of current structure for weighted metrics
+        struct_sizes[eval(struct)] = len(struct_idx)
 
         # find best threshold and metrics
         accuracy, precision, recall, f1 = get_class_metrics(
@@ -248,5 +300,31 @@ def evaluate_with_thresholds(
             'recall': recall,
             'f1': f1
         }
+
+    metrics['macro'] = {
+        'accuracy': np.mean([metrics[eval(struct)]['accuracy'] for struct in metrics]),
+        'precision': np.mean([metrics[eval(struct)]['precision'] for struct in metrics]),
+        'recall': np.mean([metrics[eval(struct)]['recall'] for struct in metrics]),
+        'f1': np.mean([metrics[eval(struct)]['f1'] for struct in metrics])
+    }
+
+    metrics['weighted'] = {
+        'accuracy': np.average(
+            [metrics[eval(struct)]['accuracy'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+        ),
+        'precision': np.average(
+            [metrics[eval(struct)]['precision'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+        ),
+        'recall': np.average(
+            [metrics[eval(struct)]['recall'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+        ),
+        'f1': np.average(
+            [metrics[eval(struct)]['f1'] for struct in metrics if struct != 'macro'],
+            weights=[struct_sizes[eval(struct)] for struct in metrics if struct != 'macro']
+        )
+    }
 
     return metrics

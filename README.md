@@ -89,7 +89,7 @@ It is normal that you see some skipped tests.
 The easiest way to start experiments is via the command line interface. The command line also provides more information on the options available for each command. You can show the help it by typing
 
 ```bash
-hqe --help
+hrqe --help
 ```
 
 into a terminal within your active python environment. Some IDEs, e.g. PyCharm, require you to start from a file if you want to enable the debugger. To this end, we also provide a thin wrapper in `executables`, which you can start by
@@ -102,14 +102,14 @@ python executables/main.py
 
 As a first step, download the WD50K dataset:
 ```bash
-hqe preprocess download-wd50k
+hrqe preprocess download-wd50k
 ```
 
 Then to run experiments, we offer the preprocessed queries for download.
 It is also possible to run the preprocessing steps yourself, cf. the [data preprocessing README](src/mphrqe/data/README.md), using the following command
 
 ```bash
-hqe preprocess skip-and-download-binary
+hrqe preprocess skip-and-download-binary
 ```
 
 ### Training a model
@@ -117,7 +117,7 @@ hqe preprocess skip-and-download-binary
 There are many options are available for model training.
 For an overview of options, run
 ```bash
-hqe train --help
+hrqe train --help
 ```
 
 *Some examples:*
@@ -128,7 +128,7 @@ Details on how to specify the amount of samples can be found in [src/mphrqe/data
 Note that the data loading is taking care of only using data from the correct data split.
 
 ```bash
-hqe train \
+hrqe train \
     -tr /1hop/1qual:atmost10000:reify \
     -va /1hop/1qual:5000:reify
 ```
@@ -140,7 +140,7 @@ The example below uses target pooling to get the embedding of the query graph, u
 Finally, the trained model is stored as a file `training-example-model.pt` which then be used in the evaluation.
 
 ```bash
-hqe train \
+hrqe train \
     -tr /1hop/1qual:atmost10000:reify \
     -va /1hop/1qual:5000:reify \
     --graph-pooling TargetPooling \
@@ -162,7 +162,7 @@ Under the hood this is using the [optuna](https://optuna.readthedocs.io/en/stabl
 
 All options for the hyperparameter optimization can be seen with
 ```bash
-hqe optimize --help
+hrqe optimize --help
 ```
 
 *Some examples:*
@@ -172,7 +172,7 @@ Run hyper-parameter optimization.
 This will result in a set of runs with different hyper-parameters from which the user can pick the best.
 
 ```bash
-hqe optimize \
+hrqe optimize \
     -tr "/1hop/1qual-per-triple:*" \
     -tr "/2i/1qual-per-triple:atmost40000" \
     -tr "/2hop/1qual-per-triple:40000" \
@@ -192,7 +192,7 @@ hqe optimize \
 To evaluate a model's performance on the test set, we provide an example below:
 
 ```bash
-hqe evaluate \
+hrqe evaluate \
     --test-data "/1hop/1qual:5000:reify" \
     --use-wandb \
     --wandb-name "test-example" \
