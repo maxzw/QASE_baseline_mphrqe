@@ -5,7 +5,7 @@
 #SBATCH --gpus=1
 #SBATCH --mem=60G
 #SBATCH --partition=gpu_shared
-#SBATCH --time=10:00:00
+#SBATCH --time=30:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=m.j.zwager@student.vu.nl
 #SBATCH --output=job_logs/output_%A.out
@@ -23,14 +23,10 @@ cd ${SCRATCH_DIRECTORY}
 # Activate Anaconda work environment for OpenDrift
 source /home/${USER}/.bashrc
 source activate thesis
-pip install .
-
-# prepare data
-srun hrqe preprocess download-wd50k
-srun hrqe preprocess skip-and-download-binary
+pip install -e .
 
 # Run your code
-srun hrqe train \
+srun python executables/main.py train \
     -tr "/1hop/1qual-per-triple:*" \
     -tr "/2i/1qual-per-triple:atmost40000" \
     -tr "/2hop/1qual-per-triple:40000" \
@@ -54,6 +50,3 @@ srun hrqe train \
     # --use-wandb --wandb-name "training-example" \
     --save \
     --model-path "training-example-model.pt"
-
-mkdir -p $HOME/QASE_baseline_mphrqe/run_data/scratch_${SLURM_JOBID} && \ 
-cp -r ${SCRATCH_DIRECTORY} $HOME/QASE_baseline_mphrqe/run_data/scratch_${SLURM_JOBID}
