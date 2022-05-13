@@ -27,26 +27,30 @@ pip install -e .
 
 # Run your code
 srun python executables/main.py train \
-    -tr "/1hop/1qual-per-triple:*" \
-    -tr "/2i/1qual-per-triple:atmost40000" \
-    -tr "/2hop/1qual-per-triple:40000" \
-    -tr "/3hop/1qual-per-triple:40000" \
-    -tr "/3i/1qual-per-triple:40000" \
-    -va "/1hop/1qual-per-triple:atmost3500" \
-    -va "/2i/1qual-per-triple:atmost3500" \
-    -va "/2hop/1qual-per-triple:atmost3500" \
-    -va "/3hop/1qual-per-triple:atmost3500" \
-    -va "/3i/1qual-per-triple:atmost3500" \
-    --epochs 2 \
-    # --embedding-dim 192
-    # --activation nn.LeakyRelu
-    # --learning-rate 0.0008
-    # --batch-size 64
-    # --num-layers 3
-    # --use-bias True
-    # --graph-pooling TargetPooling \
-    # --dropout 0.5 \
-    # --similarity CosineSimilarity \
-    # --use-wandb --wandb-name "training-example" \
+    -tr "/1hop/0qual:*" \
+    -tr "/2hop/0qual:*" \
+    -tr "/3hop/0qual:*" \
+    -tr "/2i/0qual:*" \
+    -tr "/3i/0qual:*" \
+    -tr "/1hop-2i/0qual:*" \
+    -tr "/2i-1hop/0qual:*" \
+    -va "/1hop/0qual:atmost1000" \
+    -va "/2hop/0qual:atmost1000" \
+    -va "/3hop/0qual:atmost1000" \
+    -va "/2i/0qual:atmost1000" \
+    -va "/3i/0qual:atmost1000" \
+    -va "/1hop-2i/0qual:atmost1000" \
+    -va "/2i-1hop/0qual:atmost1000" \
+    --epochs 10000 \
+    --embedding-dim 400
+    --activation nn.LeakyRelu
+    --learning-rate 0.0007741
+    --batch-size 64
+    --num-layers 3
+    --use-bias True
+    --graph-pooling TargetPooling \
+    --dropout 0.5 \
+    --message-weighting AttentionMessageWeighting \
+    --use-wandb --wandb-name "training-example" \
     --save \
-    --model-path "training-example-model.pt"
+    --model-path "./model.pt"
