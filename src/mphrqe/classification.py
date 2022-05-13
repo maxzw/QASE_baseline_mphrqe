@@ -105,7 +105,7 @@ def find_best_threshold(
         plt.xlabel("Distance threshold")
         plt.ylabel("Score")
         plt.title(f"{model_name}_{dataset_name}_{struct_str}")
-        plt.savefig(f"./{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
+        plt.savefig(f"./saved/{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
         plt.clf()
 
         # save figure to collective f1 plot (1) if needed
@@ -178,11 +178,11 @@ def find_val_thresholds(
     # Define plot
     plt.figure(1, figsize=(10,10))
 
-    Path("./opt").mkdir(parents=True, exist_ok=True)
-    torch.save(all_distances, f"./opt/distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_easy_answers, f"./opt/easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_hard_answers, f"./opt/hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_query_stuctures, f"./opt/query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    Path("./saved").mkdir(parents=True, exist_ok=True)
+    torch.save(all_distances, f"./saved/distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_easy_answers, f"./saved/easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_hard_answers, f"./saved/hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_query_stuctures, f"./saved/query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
         
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
@@ -221,7 +221,7 @@ def find_val_thresholds(
     plt.xlabel('Distance threshold')
     plt.ylabel('f1-score')
     plt.legend()
-    plt.savefig("./threshold_search.png", facecolor='w', bbox_inches='tight')
+    plt.savefig(f"./saved/threshold_search_{dataset}.png", facecolor='w', bbox_inches='tight')
     plt.clf()
 
     return thresholds, metrics

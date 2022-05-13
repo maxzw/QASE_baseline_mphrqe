@@ -51,6 +51,11 @@ srun python executables/main.py train \
     --graph-pooling TargetPooling \
     --dropout 0.5 \
     --message-weighting AttentionMessageWeighting \
-    --use-wandb --wandb-name "training-example" \
-    --save \
-    --model-path "./model.pt"
+    --use-wandb \
+    --save ${@:1}
+
+    # --data-root "aifb"
+    # --model-path "./saved/model_AIFB.pt"
+    
+    # --data-root "mutag"
+    # --model-path "./saved/model_MUTAG.pt"

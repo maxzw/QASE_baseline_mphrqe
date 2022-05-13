@@ -1,0 +1,61 @@
+num ents: 2925
+num rels: 48
+INFO:mphrqe.cli:Initialized model:
+StarEQueryEmbeddingModel(
+  (layers): ModuleList(
+    (0): StarEConvLayer(
+      (composition): MultiplicationComposition()
+      (qualifier_composition): MultiplicationComposition()
+      (qualifier_aggregation): SumQualifierAggregation()
+      (message_weighting): SymmetricMessageWeighting()
+      (activation): ReLU()
+      (dropout): Dropout(p=0.3, inplace=False)
+      (batch_norm): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (edge_dropout): Dropout(p=0.0, inplace=False)
+    )
+    (1): StarEConvLayer(
+      (composition): MultiplicationComposition()
+      (qualifier_composition): MultiplicationComposition()
+      (qualifier_aggregation): SumQualifierAggregation()
+      (message_weighting): SymmetricMessageWeighting()
+      (activation): ReLU()
+      (dropout): Dropout(p=0.3, inplace=False)
+      (batch_norm): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (edge_dropout): Dropout(p=0.0, inplace=False)
+    )
+  )
+  (pooling): SumGraphPooling()
+).
+WARNING:pykeen.utils:No cuda devices were available. The model runs on CPU
+INFO:mphrqe.training:Training on device=cpu
+INFO:mphrqe.training:Instantiated similarity DotProductSimilarity()
+INFO:mphrqe.training:Instantiated loss BCEQueryEmbeddingLoss()
+INFO:mphrqe.training:Instantiated optimizer Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.001
+    maximize: False
+    weight_decay: 0
+)
+INFO:mphrqe.early_stopping:Storing best model to file:///C:/Users/maxzw/AppData/Local/Temp/best-model-5efa8159-142a-4c67-afd9-ed0611ef57f6.pt
+INFO:mphrqe.training:Instantiated early stopper EarlyStopper(best_epoch=-1, best_metric=-inf, remaining_patience=5, best_model_path=file:///C:/Users/maxzw/AppData/Local/Temp/best-model-5efa8159-142a-4c67-afd9-ed0611ef57f6.pt, save_best_model=True)
+INFO:mphrqe.training:Epoch: 0
+
+
+Training: 100%|█████████████████████████████████████████████████████████████| 100/100 [00:06<00:00, 16.1batch/s]
+INFO:mphrqe.training:Evaluating on validation
+Evaluation: 100%|█████████████████████████████████████████████████████████| 24.0/24.0 [00:00<00:00, 24.9batch/s]
+INFO:mphrqe.early_stopping:Updated: EarlyStopper(best_epoch=0, best_metric=0.01026045782866446, remaining_patience=5, best_model_path=file:///C:/Users/maxzw/AppData/Local/Temp/best-model-5efa8159-142a-4c67-afd9-ed0611ef57f6.pt, save_best_model=True)
+INFO:mphrqe.cli:Epoch:     0/    2: {'train': {'loss': 3.0434979248046874, 'optimistic.num_ranks': 8853, 'optimistic.mean_rank': 1274.0110610070826, 'optimistic.mean_reciprocal_rank': 0.0050436174718845725, 'optimistic.hits_at_1': 0.0, 'optimistic.hits_at_3': 0.0028239015128354522, 'optimistic.hits_at_5': 0.005760759099649734, 'optimistic.hits_at_10': 0.010843781828066074, 'realistic.num_ranks': 8853, 'realistic.mean_rank': 1274.0114566566417, 'realistic.mean_reciprocal_rank': 0.0050436170086428506, 'realistic.hits_at_1': 0.0, 'realistic.hits_at_3': 0.0028239015128354522, 'realistic.hits_at_5': 0.005760759099649734, 'realistic.hits_at_10': 0.010843781828066074, 'pessimistic.num_ranks': 8853, 'pessimistic.mean_rank': 1274.0118514926746, 'pessimistic.mean_reciprocal_rank': 0.00504361655187084, 'pessimistic.hits_at_1': 0.0, 'pessimistic.hits_at_3': 0.0028239015128354522, 'pessimistic.hits_at_5': 0.005760759099649734, 'pessimistic.hits_at_10': 0.010843781828066074, 'realistic.expected_mean_rank': 1435.18798828125, 'realistic.adjusted_mean_rank': 0.8876965715009713, 'realistic.adjusted_mean_rank_index': 0.11238173303749699}, 'validation': {'loss': 0.7885029315948486, 'optimistic.num_ranks': 1267, 'optimistic.mean_rank': 1139.7553218127991, 'optimistic.mean_reciprocal_rank': 0.006104258728072477, 'optimistic.hits_at_1': 0.0, 'optimistic.hits_at_3': 0.003946329927881967, 'optimistic.hits_at_5': 0.006314127914748656, 'optimistic.hits_at_10': 0.01026045782866446, 'realistic.num_ranks': 1267, 'realistic.mean_rank': 1139.756110597052, 'realistic.mean_reciprocal_rank': 0.006104252419041965, 'realistic.hits_at_1': 0.0, 'realistic.hits_at_3': 0.003946329927881967, 'realistic.hits_at_5': 0.006314127914748656, 'realistic.hits_at_10': 0.01026045782866446, 'pessimistic.num_ranks': 1267, 'pessimistic.mean_rank': 1139.756899381305, 'pessimistic.mean_reciprocal_rank': 0.006104246047163719, 'pessimistic.hits_at_1': 0.0, 'pessimistic.hits_at_3': 0.003946329927881967, 'pessimistic.hits_at_5': 0.006314127914748656, 'pessimistic.hits_at_10': 0.01026045782866446, 'realistic.expected_mean_rank': 1460.2135009765625, 'realistic.adjusted_mean_rank': 0.7805407290336688, 'realistic.adjusted_mean_rank_index': 0.2196096665532823}}
+INFO:mphrqe.training:Epoch: 1
+
+
+Training: 100%|█████████████████████████████████████████████████████████████| 100/100 [00:05<00:00, 19.5batch/s]
+INFO:mphrqe.training:Evaluating on validation
+Evaluation: 100%|█████████████████████████████████████████████████████████| 24.0/24.0 [00:00<00:00, 58.3batch/s]
+INFO:mphrqe.early_stopping:Updated: EarlyStopper(best_epoch=1, best_metric=0.020520915766117982, remaining_patience=5, best_model_path=file:///C:/Users/maxzw/AppData/Local/Temp/best-model-5efa8159-142a-4c67-afd9-ed0611ef57f6.pt, save_best_model=True)
+INFO:mphrqe.cli:Epoch:     1/    2: {'train': {'loss': 0.30876827239990234, 'optimistic.num_ranks': 8864, 'optimistic.mean_rank': 977.7018244154617, 'optimistic.mean_reciprocal_rank': 0.010897644647909412, 'optimistic.hits_at_1': 0.0, 'optimistic.hits_at_3': 0.0068817690134826805, 'optimistic.hits_at_5': 0.013425090380995585, 'optimistic.hits_at_10': 0.025045126546275154, 'realistic.num_ranks': 8864, 'realistic.mean_rank': 977.7027364723949, 'realistic.mean_reciprocal_rank': 0.010897642970183908, 'realistic.hits_at_1': 0.0, 'realistic.hits_at_3': 0.0068817690134826805, 'realistic.hits_at_5': 0.013425090380995585, 'realistic.hits_at_10': 0.025045126546275154, 'pessimistic.num_ranks': 8864, 'pessimistic.mean_rank': 977.7036383797546, 'pessimistic.mean_reciprocal_rank': 0.01089764139668584, 'pessimistic.hits_at_1': 0.0, 'pessimistic.hits_at_3': 0.0068817690134826805, 'pessimistic.hits_at_5': 0.013425090380995585, 'pessimistic.hits_at_10': 0.025045126546275154, 'realistic.expected_mean_rank': 1435.224853515625, 'realistic.adjusted_mean_rank': 0.6812192069259975, 'realistic.adjusted_mean_rank_index': 0.3190030600304652}, 'validation': {'loss': 0.20600642760594687, 'optimistic.num_ranks': 1267, 'optimistic.mean_rank': 993.942377561646, 'optimistic.mean_reciprocal_rank': 0.010169788867958484, 'optimistic.hits_at_1': 0.0, 'optimistic.hits_at_3': 0.0055248619152061, 'optimistic.hits_at_5': 0.00789265987193528, 'optimistic.hits_at_10': 0.020520915766117982, 'realistic.num_ranks': 1267, 'realistic.mean_rank': 993.9427749886697, 'realistic.mean_reciprocal_rank': 0.01016978861987532, 'realistic.hits_at_1': 0.0, 'realistic.hits_at_3': 0.0055248619152061, 'realistic.hits_at_5': 0.00789265987193528, 'realistic.hits_at_10': 0.020520915766117982, 'pessimistic.num_ranks': 1267, 'pessimistic.mean_rank': 993.9431724156934, 'pessimistic.mean_reciprocal_rank': 0.010169788399356951, 'pessimistic.hits_at_1': 0.0, 'pessimistic.hits_at_3': 0.0055248619152061, 'pessimistic.hits_at_5': 0.00789265987193528, 'pessimistic.hits_at_10': 0.020520915766117982, 'realistic.expected_mean_rank': 1460.2135009765625, 'realistic.adjusted_mean_rank': 0.6806831838795766, 'realistic.adjusted_mean_rank_index': 0.31953564415066493}}
+INFO:mphrqe.cli:Saved model to file:///D:/thesis_code/QASE_baseline_mphrqe/saved/model_AIFB.pt
+INFO:mphrqe.cli:Done

@@ -1,0 +1,36 @@
+{
+    "os": "Windows-10-10.0.19044-SP0",
+    "python": "3.10.4",
+    "heartbeatAt": "2022-05-13T18:42:33.213148",
+    "startedAt": "2022-05-13T18:42:26.879600",
+    "docker": null,
+    "cpu_count": 4,
+    "cuda": null,
+    "args": [
+        "train",
+        "-tr",
+        "/1hop/0qual:*",
+        "-va",
+        "/1hop/0qual:*",
+        "--epochs",
+        "2",
+        "--save",
+        "--model-path",
+        "./saved/model_AIFB.pt",
+        "--data-root",
+        "aifb",
+        "--use-wandb"
+    ],
+    "state": "running",
+    "program": "D:\\thesis_code\\QASE_baseline_mphrqe\\executables\\main.py",
+    "codePath": "executables\\main.py",
+    "git": {
+        "remote": "https://github.com/maxzw/QASE_baseline_mphrqe.git",
+        "commit": "2c9bbefa0135c541a5ec673de07b73f1f02bbe23"
+    },
+    "email": "maxzwager+github@gmail.com",
+    "root": "D:/thesis_code/QASE_baseline_mphrqe",
+    "host": "DESKTOP-AAK83DR",
+    "username": "maxzw",
+    "executable": "D:\\conda_src\\envs\\thesis\\python.exe"
+}

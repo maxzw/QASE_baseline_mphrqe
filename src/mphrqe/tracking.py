@@ -52,7 +52,7 @@ def init_tracker(
         group = wandb_name if is_hpo else wandb_group
         wandb_run = cast(
             wandb.wandb_sdk.wandb_run.Run,
-            wandb.init(project="stare_query", entity="hyperquery", name=name, reinit=True, group=group),
+            wandb.init(project="qase_baseline", entity="maxzw", name=name, reinit=True, group=group),
         )
         # All wandb information needs to be collected and then stored as one action on the root of the config object.
         wandb_run.config.update(config)
