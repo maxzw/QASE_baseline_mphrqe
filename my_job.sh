@@ -5,7 +5,7 @@
 #SBATCH --gpus=1
 #SBATCH --mem=60G
 #SBATCH --partition=gpu_shared
-#SBATCH --time=30:00
+#SBATCH --time=100:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=m.j.zwager@student.vu.nl
 #SBATCH --output=job_logs/output_%A.out
