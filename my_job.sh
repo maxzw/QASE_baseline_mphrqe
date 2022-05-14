@@ -45,8 +45,7 @@ srun python executables/main.py train \
     --embedding-dim 400 \
     --activation leakyrelu \
     --learning-rate 0.0007741 \
-    --batch-size 64 \ 
-    --num-layers 3 \
+    --batch-size 64 \
     --use-bias True \
     --graph-pooling TargetPooling \
     --dropout 0.5 \

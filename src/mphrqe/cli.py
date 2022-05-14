@@ -114,7 +114,7 @@ option_num_layers = click.option(
     "-nl",
     "--num-layers",
     type=int,
-    default=2,
+    default=3,
 )
 option_num_layers_optional = click.option(
     "-nl",
