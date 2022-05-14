@@ -42,12 +42,12 @@ srun python executables/main.py train \
     -va "/1hop-2i/0qual:*" \
     -va "/2i-1hop/0qual:*" \
     --epochs 10000 \
-    --embedding-dim 400
-    --activation leakyrelu
-    --learning-rate 0.0007741
-    --batch-size 64
-    --num-layers 3
-    --use-bias True
+    --embedding-dim 400 \
+    --activation leakyrelu \
+    --learning-rate 0.0007741 \
+    --batch-size 64 \ 
+    --num-layers 3 \
+    --use-bias True \
     --graph-pooling TargetPooling \
     --dropout 0.5 \
     --message-weighting attention \
