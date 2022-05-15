@@ -55,7 +55,6 @@ def find_best_threshold(
     num_steps: int = 50,
     model_name: str = "StarQE",
     dataset_name: str = None,
-    save_path = ""
     ) -> Tuple[float, float, float, float, float]:
 
     # track precision and recall
@@ -179,10 +178,10 @@ def find_val_thresholds(
     plt.figure(1, figsize=(10,10))
 
     Path("./saved").mkdir(parents=True, exist_ok=True)
-    torch.save(all_distances, f"./saved/distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_easy_answers, f"./saved/easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_hard_answers, f"./saved/hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_query_stuctures, f"./saved/query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_distances, f"./saved/{dataset}_distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_easy_answers, f"./saved/{dataset}_deasy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_hard_answers, f"./saved/{dataset}_dhard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_query_stuctures, f"./saved/{dataset}_dquery_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
         
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
@@ -196,7 +195,7 @@ def find_val_thresholds(
 
         # find best threshold and metrics
         best_threshold, accuracy, precision, recall, f1 = find_best_threshold(
-            str_distances.numpy(), 
+            -str_distances.numpy(), 
             str_easy_answers.bool().numpy(), 
             str_hard_answers.bool().numpy(),
             num_steps=50,
