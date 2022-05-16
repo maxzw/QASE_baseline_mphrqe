@@ -528,14 +528,14 @@ def evaluate_cli(
     # result["metrics_val"] = metrics
     # logging.info(f"Val thresholds: {thresholds}")
     # logging.info(f"Val metrics: {metrics}")
-    thresholds = { # for AIFB
-        '2i': 2.338860461521392,
-        '2hop': 1.6649552579604006,
-        '3i': 1.4885859916467281,
-        '1hop': 3.090314810095961,
-        '3hop': -0.2219756782626181, 
-        '1hop-2i': 1.7498075446990933, 
-        '2i-1hop': 0.7999643872364857
+    thresholds = { # for MUTAG
+        '1hop': 3.7031527949640193, 
+        '3hop': 1.3550964681153506, 
+        '1hop-2i': 4.070549787355263, 
+        '2hop': 2.893177088319298, 
+        '2i-1hop': 1.381326138243173, 
+        '2i': 2.983883608322666, 
+        '3i': 3.32128510439248
         }
 
     logger.info(f"Applying optimal thresholds on test data.")
