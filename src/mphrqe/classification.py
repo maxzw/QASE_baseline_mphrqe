@@ -1,5 +1,6 @@
 """Classification for MPHRQE."""
 
+import pickle
 import logging
 from pathlib import Path
 from pickle import HIGHEST_PROTOCOL
@@ -105,6 +106,8 @@ def find_best_threshold(
         plt.ylabel("Score")
         plt.title(f"{model_name}_{dataset_name}_{struct_str}")
         plt.savefig(f"./saved/{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
+        temp_figure = plt.gcf()
+        pickle.dump(temp_figure, open(f"./saved/{model_name}_{dataset_name}_{struct_str}.pkl", 'wb'))
         plt.clf()
 
         # save figure to collective f1 plot (1) if needed
@@ -135,53 +138,57 @@ def find_val_thresholds(
     thresholds = {}
     metrics = {}
 
-    step = 0
-    total_steps = len(data_loader)
+    # step = 0
+    # total_steps = len(data_loader)
 
-    # track queries, distances and answers
-    all_query_stuctures = []
-    all_distances = torch.empty((0, model.x_e.size(0)))
-    all_easy_answers = torch.empty((0, model.x_e.size(0)))
-    all_hard_answers = torch.empty((0, model.x_e.size(0)))
+    # # track queries, distances and answers
+    # all_query_stuctures = []
+    # all_distances = torch.empty((0, model.x_e.size(0)))
+    # all_easy_answers = torch.empty((0, model.x_e.size(0)))
+    # all_hard_answers = torch.empty((0, model.x_e.size(0)))
 
-    batch: QueryGraphBatch
-    for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
+    # batch: QueryGraphBatch
+    # for batch in tqdm(data_loader, desc="Evaluation", unit="batch", unit_scale=True):
         
-        # embed query
-        x_query = model(batch)
+    #     # embed query
+    #     x_query = model(batch)
         
-        # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
-        scores = similarity(x=x_query, y=model.x_e)
+    #     # compute pairwise similarity to all entities, shape: (batch_size, num_entities)
+    #     scores = similarity(x=x_query, y=model.x_e)
         
-        # get easy answers
-        easy_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
-        batch_id, entity_id = batch.easy_targets
-        for batch_id, entity_id in zip(batch_id, entity_id):
-            easy_answers[batch_id, entity_id] = 1
+    #     # get easy answers
+    #     easy_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
+    #     batch_id, entity_id = batch.easy_targets
+    #     for batch_id, entity_id in zip(batch_id, entity_id):
+    #         easy_answers[batch_id, entity_id] = 1
         
-        # get hard answers
-        hard_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
-        batch_id, entity_id = batch.hard_targets
-        hard_answers[batch_id, entity_id] = 1
+    #     # get hard answers
+    #     hard_answers = torch.zeros_like(scores) # initialize with zeros, size: (batch_size, num_ents)
+    #     batch_id, entity_id = batch.hard_targets
+    #     hard_answers[batch_id, entity_id] = 1
         
-        # add to tracking
-        all_query_stuctures.extend(batch.query_structures)
-        all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
-        all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
-        all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
+    #     # add to tracking
+    #     all_query_stuctures.extend(batch.query_structures)
+    #     all_distances = torch.cat((all_distances, scores.cpu()), dim=0)
+    #     all_easy_answers = torch.cat((all_easy_answers, easy_answers.cpu()), dim=0)
+    #     all_hard_answers = torch.cat((all_hard_answers, hard_answers.cpu()), dim=0)
 
-        if step % 10 == 0:
-            logging.info('Gathering predictions of batches... (%d/%d) ' % (step, total_steps))
-            step += 1
+    #     if step % 10 == 0:
+    #         logging.info('Gathering predictions of batches... (%d/%d) ' % (step, total_steps))
+    #         step += 1
 
     # Define plot
     plt.figure(1, figsize=(10,10))
 
-    Path("./saved").mkdir(parents=True, exist_ok=True)
-    torch.save(all_distances, f"./saved/{dataset}_distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_easy_answers, f"./saved/{dataset}_deasy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_hard_answers, f"./saved/{dataset}_dhard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_query_stuctures, f"./saved/{dataset}_dquery_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    # Path("./saved").mkdir(parents=True, exist_ok=True)
+    # torch.save(all_distances, f"./saved/{dataset}_distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    # torch.save(all_easy_answers, f"./saved/{dataset}_easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    # torch.save(all_hard_answers, f"./saved/{dataset}_hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    # torch.save(all_query_stuctures, f"./saved/{dataset}_query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    all_distances = torch.load(f"./saved/{dataset}_distances.pt")
+    all_easy_answers = torch.load(f"./saved/{dataset}_easy_answers_mask.pt")
+    all_hard_answers = torch.load(f"./saved/{dataset}_hard_answers_mask.pt")
+    all_query_stuctures = torch.load(f"./saved/{dataset}_query_structures.pt")
         
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
@@ -221,6 +228,8 @@ def find_val_thresholds(
     plt.ylabel('f1-score')
     plt.legend()
     plt.savefig(f"./saved/threshold_search_{dataset}.png", facecolor='w', bbox_inches='tight')
+    opt_figure = plt.gcf()
+    pickle.dump(opt_figure, open(f"./saved/threshold_search_{dataset}.pkl", 'wb'))
     plt.clf()
 
     return thresholds, metrics
