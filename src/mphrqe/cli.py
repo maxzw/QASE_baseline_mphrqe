@@ -516,27 +516,19 @@ def evaluate_cli(
 
     result = dict()
 
-    # logger.info(f"Finding optimal thresholds for validation data.")
-    # val_data_loader = data_loaders["validation"]
-    # thresholds, metrics = find_val_thresholds(
-    #     data_loader=val_data_loader,
-    #     model=model,
-    #     similarity=similarity,
-    #     dataset=str(data_root).upper()
-    # )
-    # result["thresholds"] = thresholds
-    # result["metrics_val"] = metrics
-    # logging.info(f"Val thresholds: {thresholds}")
-    # logging.info(f"Val metrics: {metrics}")
-    thresholds = { # for MUTAG
-        '1hop': 3.7031527949640193, 
-        '3hop': 1.3550964681153506, 
-        '1hop-2i': 4.070549787355263, 
-        '2hop': 2.893177088319298, 
-        '2i-1hop': 1.381326138243173, 
-        '2i': 2.983883608322666, 
-        '3i': 3.32128510439248
-        }
+    logger.info(f"Finding optimal thresholds for validation data.")
+    val_data_loader = data_loaders["validation"]
+    thresholds, metrics = find_val_thresholds(
+        data_loader=val_data_loader,
+        model=model,
+        similarity=similarity,
+        dataset=str(data_root).upper(),
+        save_path=model_path.parent
+    )
+    result["thresholds"] = thresholds
+    result["metrics_val"] = metrics
+    logging.info(f"Val thresholds: {thresholds}")
+    logging.info(f"Val metrics: {metrics}")
 
     logger.info(f"Applying optimal thresholds on test data.")
     val_data_loader = data_loaders["test"]

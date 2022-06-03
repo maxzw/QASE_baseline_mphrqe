@@ -1,5 +1,6 @@
 """Classification for MPHRQE."""
 
+import pathlib
 import pickle
 import logging
 from pathlib import Path
@@ -52,6 +53,7 @@ def find_best_threshold(
     distances: np.ndarray, 
     easy_answers: np.ndarray,
     hard_answers: np.ndarray, 
+    save_path: pathlib.Path,
     struct_str: str = None, 
     num_steps: int = 50,
     model_name: str = "StarQE",
@@ -105,9 +107,9 @@ def find_best_threshold(
         plt.xlabel("Distance threshold")
         plt.ylabel("Score")
         plt.title(f"{model_name}_{dataset_name}_{struct_str}")
-        plt.savefig(f"./saved/{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
+        plt.savefig(save_path / f"{model_name}_{dataset_name}_{struct_str}.png", facecolor='w', bbox_inches='tight')
         temp_figure = plt.gcf()
-        pickle.dump(temp_figure, open(f"./saved/{model_name}_{dataset_name}_{struct_str}.pkl", 'wb'))
+        pickle.dump(temp_figure, open(save_path / f"{model_name}_{dataset_name}_{struct_str}.pkl", 'wb'))
         plt.clf()
 
         # save figure to collective f1 plot (1) if needed
@@ -130,7 +132,8 @@ def find_val_thresholds(
     data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
     model: QueryEmbeddingModel,
     similarity: Similarity,
-    dataset: str
+    dataset: str,
+    save_path: pathlib.Path,
 ):
     model.eval()
     
@@ -180,15 +183,15 @@ def find_val_thresholds(
     # Define plot
     plt.figure(1, figsize=(10,10))
 
-    Path("./saved").mkdir(parents=True, exist_ok=True)
-    torch.save(all_distances, f"./saved/{dataset}_distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_easy_answers, f"./saved/{dataset}_easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_hard_answers, f"./saved/{dataset}_hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    torch.save(all_query_stuctures, f"./saved/{dataset}_query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
-    # all_distances = torch.load(f"./saved/{dataset}_distances.pt")
-    # all_easy_answers = torch.load(f"./saved/{dataset}_easy_answers_mask.pt")
-    # all_hard_answers = torch.load(f"./saved/{dataset}_hard_answers_mask.pt")
-    # all_query_stuctures = torch.load(f"./saved/{dataset}_query_structures.pt")
+    Path(save_path).mkdir(parents=True, exist_ok=True)
+    torch.save(all_distances, save_path / f"{dataset}_distances.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_easy_answers, save_path / f"{dataset}_easy_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_hard_answers, save_path / f"{dataset}_hard_answers_mask.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    torch.save(all_query_stuctures, save_path / f"{dataset}_query_structures.pt", pickle_protocol=HIGHEST_PROTOCOL)
+    # all_distances = torch.load(save_path / f"{dataset}_distances.pt")
+    # all_easy_answers = torch.load(save_path / f"{dataset}_easy_answers_mask.pt")
+    # all_hard_answers = torch.load(save_path / f"{dataset}_hard_answers_mask.pt")
+    # all_query_stuctures = torch.load(save_path / f"{dataset}_query_structures.pt")
         
     # find best threshold for each query structure
     for struct in set(all_query_stuctures):
@@ -205,6 +208,7 @@ def find_val_thresholds(
             -str_distances.numpy(), 
             str_easy_answers.bool().numpy(), 
             str_hard_answers.bool().numpy(),
+            save_path=save_path,
             num_steps=50,
             struct_str=struct,
             dataset_name=dataset,
@@ -227,9 +231,9 @@ def find_val_thresholds(
     plt.xlabel('Distance threshold')
     plt.ylabel('f1-score')
     plt.legend()
-    plt.savefig(f"./saved/threshold_search_{dataset}.png", facecolor='w', bbox_inches='tight')
+    plt.savefig(save_path / f"threshold_search_{dataset}.png", facecolor='w', bbox_inches='tight')
     opt_figure = plt.gcf()
-    pickle.dump(opt_figure, open(f"./saved/threshold_search_{dataset}.pkl", 'wb'))
+    pickle.dump(opt_figure, open(save_path / f"threshold_search_{dataset}.pkl", 'wb'))
     plt.clf()
 
     return thresholds, metrics
