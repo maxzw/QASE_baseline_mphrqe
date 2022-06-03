@@ -32,6 +32,8 @@ srun python executables/main.py train \
     -tr "/3hop/0qual:*" \
     -tr "/2i/0qual:*" \
     -tr "/3i/0qual:*" \
+    -tr "/1hop-2i/0qual:*" \
+    -tr "/2i-1hop/0qual:*" \
     -va "/1hop/0qual:*" \
     -va "/2hop/0qual:*" \
     -va "/3hop/0qual:*" \
@@ -40,7 +42,7 @@ srun python executables/main.py train \
     -va "/1hop-2i/0qual:*" \
     -va "/2i-1hop/0qual:*" \
     --epochs 10000 \
-    --embedding-dim 800 \
+    --embedding-dim 128 \
     --activation leakyrelu \
     --learning-rate 0.0007741 \
     --batch-size 64 \
