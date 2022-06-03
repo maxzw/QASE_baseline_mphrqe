@@ -32,8 +32,6 @@ srun python executables/main.py train \
     -tr "/3hop/0qual:*" \
     -tr "/2i/0qual:*" \
     -tr "/3i/0qual:*" \
-    -tr "/1hop-2i/0qual:*" \
-    -tr "/2i-1hop/0qual:*" \
     -va "/1hop/0qual:*" \
     -va "/2hop/0qual:*" \
     -va "/3hop/0qual:*" \
@@ -53,8 +51,6 @@ srun python executables/main.py train \
     --use-wandb \
     --save ${@:1}
 
-    # --data-root "aifb"
-    # --model-path "./saved/model_AIFB.pt"
+    # --data-root "aifb" --model-path "./saved/model_AIFB.pt"
     
-    # --data-root "mutag"
-    # --model-path "./saved/model_MUTAG.pt"
+    # --data-root "mutag" --model-path "./saved/model_MUTAG.pt"
