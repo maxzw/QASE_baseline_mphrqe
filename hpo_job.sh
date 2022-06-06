@@ -33,7 +33,7 @@ srun python executables/main.py optimize \
     -tr "/2i/0qual:5000" \
     -tr "/3i/0qual:5000" \
     -tr "/1hop-2i/0qual:5000" \
-    -tr "/2i-1hop/0qual:5000" \
+    -tr "/2i-1hop/0qual:3700" \
     -va "/1hop/0qual:1000" \
     -va "/2hop/0qual:*" \
     -va "/3hop/0qual:*" \
