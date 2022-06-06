@@ -58,7 +58,7 @@ class Objective:
 
     # Training
     num_workers: int = 0
-    max_num_epoch: int = 10
+    max_num_epoch: int = 100
 
     log2_batch_size_range: Tuple[int, int] = (5, 10)  # [32, 1024]
 
@@ -226,6 +226,7 @@ def optimize(
     validation_data: List[str],
     test_data: List[str],
     embedding_dim: int,
+    epochs: int,
     use_wandb: bool,
     num_workers: int,
     num_trials: Optional[int],
@@ -290,6 +291,7 @@ def optimize(
         test_data=test_data,
         validation_data=validation_data,
         embedding_dim=embedding_dim,
+        max_num_epoch=epochs,
         log_level=log_level,
         use_wandb=use_wandb,
         wandb_name=wandb_name,
