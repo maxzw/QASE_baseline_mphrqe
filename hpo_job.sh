@@ -41,9 +41,8 @@ srun python executables/main.py optimize \
     -va "/3i/0qual:1000" \
     -va "/1hop-2i/0qual:1000" \
     -va "/2i-1hop/0qual:1000" \
-    --batch-size 64 \
     --use-wandb ${@:1}
 
-    # --data-root "aifb" --model-path "/home/zwagerm/QASE_baseline_mphrqe/saved/model_AIFB.pt"
+    # --data-root "aifb" --embedding-dim 64
     
-    # --data-root "mutag" --model-path "/home/zwagerm/QASE_baseline_mphrqe/saved/model_MUTAG.pt"
+    # --data-root "mutag"
