@@ -11,8 +11,14 @@ from optuna import Trial
 from optuna.pruners import BasePruner, MedianPruner, NopPruner
 from pykeen.evaluation.rank_based_evaluator import RANK_REALISTIC
 
-from .data.loader import get_query_data_loaders, resolve_sample
-from .data.mapping import get_entity_mapper, get_relation_mapper
+from gqs.sample import resolve_sample
+from gqs.dataset import Dataset
+from gqs.loader import get_query_data_loaders
+from gqs.mapping import (
+    get_entity_mapper,
+    get_relation_mapper
+)
+
 from .layer.composition import composition_resolver
 from .layer.pooling import SumGraphPooling, graph_pooling_resolver
 from .layer.util import activation_resolver
@@ -51,7 +57,7 @@ class Objective:
 
     # Training
     num_workers: int = 0
-    max_num_epoch: int = 1000
+    max_num_epoch: int = 10
 
     log2_batch_size_range: Tuple[int, int] = (5, 10)  # [32, 1024]
 
@@ -75,7 +81,6 @@ class Objective:
         batch_size = 2 ** log2_batch_size
         similarity = cast(str, trial.suggest_categorical(name="similarity", choices=list(similarity_resolver.lookup_dict.keys())))
         composition: Optional[str]
-        qualifier_composition: Optional[str]
         activation: Optional[str]
         graph_pooling: Optional[str]
         message_weighting: Optional[str]
@@ -83,7 +88,6 @@ class Objective:
             # trial.suggest_categorical(name="composition", choices=composition_resolver.lookup_dict.keys())
             composition = composition_resolver.normalize("MultiplicationComposition")
             # trial.suggest_categorical(name="qualifier_composition", choices=composition_resolver.lookup_dict.keys())
-            qualifier_composition = composition
             message_weighting = cast(str, trial.suggest_categorical(name="message_weighting", choices=list(message_weighting_resolver.lookup_dict.keys())))
             dropout = trial.suggest_float(name="dropout", low=0.0, high=0.8, step=0.1)
             use_bias = cast(bool, trial.suggest_categorical(name="use_bias", choices=[False, True]))
@@ -93,7 +97,7 @@ class Objective:
             ]))
             graph_pooling = cast(str, trial.suggest_categorical(name="graph_pooling", choices=list(graph_pooling_resolver.lookup_dict.keys())))
         else:
-            composition = qualifier_composition = message_weighting = activation = None
+            composition = message_weighting = activation = None
             use_bias = False
             dropout = 0.0
             # target pooling does not make sense without message passing
@@ -106,7 +110,6 @@ class Objective:
             learning_rate=learning_rate,
             batch_size=batch_size,
             composition=composition,
-            qualifier_composition=qualifier_composition,
             similarity=similarity,
             message_weighting=message_weighting,
             dropout=dropout,
@@ -129,11 +132,12 @@ class Objective:
         # cannot be serialized to wandb
         optimizer_instance = optimizer_resolver.lookup(self.optimizer)
         composition_instance = composition_resolver.lookup(composition)
-        qualifier_composition_instance = composition_resolver.lookup(qualifier_composition)
         similarity_instance = similarity_resolver.lookup(similarity)
 
+        dataset = Dataset(self.data_root)
+
         data_loaders, information = get_query_data_loaders(
-            data_root=self.data_root,
+            dataset=dataset,
             train=map(resolve_sample, self.train_data),
             validation=map(resolve_sample, self.validation_data),
             test=map(resolve_sample, []),
@@ -141,23 +145,28 @@ class Objective:
             num_workers=self.num_workers,
         )
 
+        relmap = get_relation_mapper(dataset=dataset)
+        entmap = get_entity_mapper(dataset=dataset, relmap=relmap)
+
         for data_loader in data_loaders.values():
             if data_loader:
                 assert len(data_loader) >= 1, \
                     f"All data splits used must be larger than the batch size {batch_size}. Could not create a single batch."
+
         model_instance = StarEQueryEmbeddingModel(
-            num_entities=get_entity_mapper().get_largest_embedding_id() + 1,
-            num_relations=get_relation_mapper().get_largest_forward_relation_id() + 1,
+            num_entities=entmap.number_of_entities_and_reified_relations_without_vars_and_targets() + 3,
+            num_relations=relmap.get_largest_forward_relation_id() + 1,
             embedding_dim=embedding_dim,
             num_layers=num_layers,
             dropout=dropout,
             activation=activation,
             composition=composition_instance,
-            qualifier_composition=qualifier_composition_instance,
-            message_weighting=message_weighting,
             use_bias=use_bias,
+            message_weighting=message_weighting,
             graph_pooling=graph_pooling,
+            entmap=entmap,
         )
+        logger.info(f"Initialized model:\n{model_instance}.")
 
         # initialize tracker
         result_callback = init_tracker(

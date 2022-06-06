@@ -36,6 +36,7 @@ from .models import StarEQueryEmbeddingModel
 from .similarity import Similarity, similarity_resolver
 from .tracking import init_tracker
 from .training import optimizer_resolver, train_iter
+from .hpo import optimize
 
 __all__ = [
     "main",
@@ -544,3 +545,49 @@ def evaluate_cli(
     if result_callback:
         result_callback(result)
     logging.info("Evaluation finished!!")
+
+
+@main.command(name="optimize")
+@option_data_root
+@option_train_data
+@option_validation_data
+@option_test_data
+@option_use_wandb
+@option_wandb_name
+@option_num_workers
+@option_log_level
+@option_num_trials
+@option_timeout
+@option_num_layers_optional
+def optimize_cli(
+    # data options
+    data_root: pathlib.Path,
+    train_data: List[str],
+    validation_data: List[str],
+    test_data: List[str],
+    num_workers: int,
+    # wandb options
+    use_wandb: bool,
+    wandb_name: str,
+    # logging options
+    log_level: str,
+    # optuna options
+    num_trials: Optional[int],
+    timeout: Optional[float],
+    num_layers: Optional[int],
+):
+    """Optimize hyperparameters using optuna."""
+    result = optimize(
+        data_root=data_root,
+        train_data=train_data,
+        validation_data=validation_data,
+        test_data=test_data,
+        use_wandb=use_wandb,
+        wandb_name=wandb_name,
+        num_workers=num_workers,
+        num_trials=num_trials,
+        timeout=timeout,
+        log_level=log_level,
+        num_layers=num_layers,
+    )
+    print(f"Best model parameters = {result}")
