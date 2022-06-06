@@ -44,6 +44,7 @@ class Objective:
     train_data: List[str]
     validation_data: List[str]
     test_data: List[str]
+    embedding_dim: int
 
     use_wandb: bool
     wandb_name: Optional[str] = None
@@ -72,7 +73,6 @@ class Objective:
         logging.basicConfig(level=self.log_level)
 
         # Sample configuration
-        embedding_dim = trial.suggest_int(name="embedding_dim", low=32, high=256, step=32)
         num_layers = self.num_layers
         if num_layers is None:
             num_layers = trial.suggest_int(name="num_layers", low=2, high=3)
@@ -105,7 +105,7 @@ class Objective:
 
         config = dict(
             # tuned parameters
-            embedding_dim=embedding_dim,
+            embedding_dim=self.embedding_dim,
             num_layers=num_layers,
             learning_rate=learning_rate,
             batch_size=batch_size,
@@ -156,7 +156,7 @@ class Objective:
         model_instance = StarEQueryEmbeddingModel(
             num_entities=entmap.number_of_entities_and_reified_relations_without_vars_and_targets() + 3,
             num_relations=relmap.get_largest_forward_relation_id() + 1,
-            embedding_dim=embedding_dim,
+            embedding_dim=self.embedding_dim,
             num_layers=num_layers,
             dropout=dropout,
             activation=activation,
@@ -225,6 +225,7 @@ def optimize(
     train_data: List[str],
     validation_data: List[str],
     test_data: List[str],
+    embedding_dim: int,
     use_wandb: bool,
     num_workers: int,
     num_trials: Optional[int],
@@ -288,6 +289,7 @@ def optimize(
         train_data=train_data,
         test_data=test_data,
         validation_data=validation_data,
+        embedding_dim=embedding_dim,
         log_level=log_level,
         use_wandb=use_wandb,
         wandb_name=wandb_name,
