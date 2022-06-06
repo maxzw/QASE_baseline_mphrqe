@@ -556,6 +556,7 @@ def evaluate_cli(
 @option_wandb_name
 @option_num_workers
 @option_log_level
+@option_embedding_dim
 @option_num_trials
 @option_timeout
 @option_num_layers_optional
@@ -572,6 +573,7 @@ def optimize_cli(
     # logging options
     log_level: str,
     # optuna options
+    embedding_dim: int,
     num_trials: Optional[int],
     timeout: Optional[float],
     num_layers: Optional[int],
@@ -582,6 +584,7 @@ def optimize_cli(
         train_data=train_data,
         validation_data=validation_data,
         test_data=test_data,
+        embedding_dim=embedding_dim,
         use_wandb=use_wandb,
         wandb_name=wandb_name,
         num_workers=num_workers,
