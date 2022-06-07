@@ -42,16 +42,16 @@ srun python executables/main.py train \
     -va "/1hop-2i/0qual:*" \
     -va "/2i-1hop/0qual:*" \
     --epochs 10000 \
-    --embedding-dim 800 \
-    --activation leakyrelu \
-    --learning-rate 0.0007741 \
-    --batch-size 64 \
-    --use-bias True \
-    --graph-pooling TargetPooling \
-    --dropout 0.5 \
-    --message-weighting attention \
     --use-wandb \
     --save ${@:1}
+    # --embedding-dim 800 \
+    # --activation leakyrelu \
+    # --learning-rate 0.0007741 \
+    # --batch-size 64 \
+    # --use-bias True \
+    # --graph-pooling TargetPooling \
+    # --dropout 0.5 \
+    # --message-weighting attention \
 
     # --data-root "aifb" --model-path "./saved/model_AIFB.pt"
     
