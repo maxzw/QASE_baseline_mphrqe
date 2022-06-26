@@ -23,7 +23,6 @@ cd ${SCRATCH_DIRECTORY}
 # Activate Anaconda work environment for OpenDrift
 source /home/${USER}/.bashrc
 source activate thesis
-pip install -e .
 
 # Run your code
 srun python executables/main.py train \
