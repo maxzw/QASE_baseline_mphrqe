@@ -357,7 +357,14 @@ def evaluate(
         # now compute the loss based on labels
         validation_loss += loss(scores, batch.hard_targets) * scores.shape[0]
         evaluator.process_scores_(scores=scores, targets=batch.hard_targets.to(model.device))
+ 
+    # Track the embedding space coverage
+    embs = model.x_e.clone().detach()
+    bits = (embs > 0).float()
+    emb_uniqueness = bits.unique(dim=0).size(0) / bits.size(0)
+
     return dict(
+        emb_uniqueness=emb_uniqueness,
         loss=validation_loss.item() / len(data_loader),
         **evaluator.finalize(),
     )
