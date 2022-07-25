@@ -17,8 +17,7 @@ Query Embedding on Hyper-Relational Knowledge Graphs.
 Dimitrios Alivanistos and Max Berrendorf and Michael Cochez and Mikhail Galkin
 International Conference on Learning Representations, 2022
 ```
-
-If you encounter any problems, or have suggestions on how to improve this code, open an issue.
+Note that this is adjusted version for the paper "Approximate Query Answering using Probabilistic Space Discretization". For any questions please contact m.j.zwager@student.vu.nl. If you encounter any problems, or have suggestions on how to improve this code, open an issue.
 
 **Abstract:**
 > Multi-hop logical reasoning is an established problem in the field of representation learning on knowledge graphs (KGs).
